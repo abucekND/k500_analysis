@@ -1,31 +1,30 @@
----
-title: "k500_classic_car_analysis"
-author: "Anthony Bucek"
-format:
-  gfm:
-    code-fold: true
-    code-summary: "Show code"
-jupyter: python3
----
+
+
 
 # Introduction
 
-Cars are hard. Choosing the best car to invest in? Even harder. 
-Cars vary in:
+Cars are hard. Choosing the best car to invest in? Even harder. Cars
+vary in:
 
 - performance (0–60, top speed)  
 - design  
 - historical significance  
 - market demand  
-- future value  
+- future value
 
-To make this decision more data-driven, this project uses the K500 Index, an independent ranking of 500 investment-grade classic cars curated by experts and historians. The goal of this project is to identify the strongest candidate for the best classic car to invest in using data scraped directly from the K500 website.
+To make this decision more data-driven, this project uses the K500
+Index, an independent ranking of 500 investment-grade classic cars
+curated by experts and historians. The goal of this project is to
+identify the strongest candidate for the best classic car to invest in
+using data scraped directly from the K500 website.
 
-This README documents the dataset, code, analysis, and final conclusions of the project.
+This README documents the dataset, code, analysis, and final conclusions
+of the project.
 
 # Data Source
 
-The data comes directly from the K500 website’s Guide page. URL: https://k500.com/the-guide
+The data comes directly from the K500 website’s Guide page. URL:
+https://k500.com/the-guide
 
 The page contains a sortable table listing:
 
@@ -36,17 +35,21 @@ The page contains a sortable table listing:
 - Category  
 - 0–60 mph time  
 - Top speed  
-- Rating (0–100 scale)  
+- Rating (0–100 scale)
 
-The data was scraped using Python, Requests, BeautifulSoup, and pandas.  
-The dataset was not downloaded manually; it was extracted dynamically from the website using the final code included in this repository.
+The data was scraped using Python, Requests, BeautifulSoup, and
+pandas.  
+The dataset was not downloaded manually; it was extracted dynamically
+from the website using the final code included in this repository.
 
 # Code w. Steps
 
-Below is the exact code used for scraping, cleaning, sorting, and generating the recommendation.
+Below is the exact code used for scraping, cleaning, sorting, and
+generating the recommendation.
 
 *Step 1: Import packages & define URLs*
-```{python}
+
+``` python
 import re
 import requests
 import pandas as pd
@@ -58,7 +61,8 @@ GUIDE_URL = BASE_URL + "/the-guide"
 ```
 
 *Step 2: Request homepage and extract K500/K50 indices*
-```{python}
+
+``` python
 home_resp = requests.get(HOME_URL)
 home_resp.raise_for_status()
 
@@ -79,8 +83,12 @@ print(f"Current K500 index value: {k500_value}")
 print(f"Current K50 index value : {k50_value}")
 ```
 
+    Current K500 index value: 100.0
+    Current K50 index value : 100.0
+
 *Step 3: Read the Guide table and inspect its strucure*
-```{python}
+
+``` python
 guide_tables = pd.read_html(GUIDE_URL)
 if not guide_tables:
     raise RuntimeError("No tables found on the Guide page")
@@ -104,8 +112,30 @@ else:
     print("You may want to inspect guide.columns and rename manually.\n")
 ```
 
+
+    Raw Guide columns as scraped:
+    ['Year', 'Make', 'Model', 'Body', 'Category', '0-60', 'Top Speed', 'Rating']
+
+    First few raw rows:
+            Year    Make          Model    Body       Category       0-60  \
+    0       Sort    Sort           Sort    Sort           Sort       Sort   
+    1  1955-1959  Abarth  750 GT Zagato   Coupe  Sports-Rac...  15.0 secs   
+    2  1960-1971  Abarth           1000  Saloon  Getaway Ca...          -   
+    3  1963-1964  Abarth     Simca 2000   Coupe  Sports-Rac...   6.0 secs   
+    4  1963-1971  Abarth            595  Saloon       Microcar  28.3 secs   
+
+      Top Speed Rating  
+    0      Sort   Sort  
+    1     89mph     50  
+    2    100mph     45  
+    3    160mph     65  
+    4     75mph     46  
+
+    [Saved] Raw scraped table → k500_raw.csv
+
 *Step 4: Define function to extract numeric values*
-```{python}
+
+``` python
 def to_float_maybe(x):
     """
     Try to extract a float from strings like '5.2 secs', '138mph',
@@ -124,7 +154,8 @@ def to_float_maybe(x):
 ```
 
 *Step 5: Clean numberic fields and prepare dataset*
-```{python}
+
+``` python
 if "0-60" in guide.columns:
     guide["0_60_sec"] = guide["0-60"].apply(to_float_maybe)
 if "Top Speed" in guide.columns:
@@ -146,8 +177,26 @@ guide_clean.to_csv("k500_cleaned.csv", index=False)
 print("[Saved] Cleaned dataset → k500_cleaned.csv")
 ```
 
+
+    Cleaned Guide preview:
+            Year    Make          Model    Body       Category       0-60  \
+    1  1955-1959  Abarth  750 GT Zagato   Coupe  Sports-Rac...  15.0 secs   
+    2  1960-1971  Abarth           1000  Saloon  Getaway Ca...          -   
+    3  1963-1964  Abarth     Simca 2000   Coupe  Sports-Rac...   6.0 secs   
+    4  1963-1971  Abarth            595  Saloon       Microcar  28.3 secs   
+    5  1965-1968  Abarth        OT 1300   Coupe  Sports-Rac...   7.0 secs   
+
+      Top Speed  Rating  0_60_sec  TopSpeed_mph  
+    1     89mph    50.0      15.0          89.0  
+    2    100mph    45.0       NaN         100.0  
+    3    160mph    65.0       6.0         160.0  
+    4     75mph    46.0      28.3          75.0  
+    5    150mph    63.0       7.0         150.0  
+    [Saved] Cleaned dataset → k500_cleaned.csv
+
 *Step 6: Rank cars and generate the recommendation*
-```{python}
+
+``` python
 if "Rating" in guide_clean.columns:
     guide_sorted = guide_clean.sort_values("Rating", ascending=False)
 else:
@@ -175,3 +224,41 @@ print(f"  0-60 mph   : {recommended['0-60']}")
 print(f"  Top speed  : {recommended['Top Speed']}")
 print(f"  Rating     : {recommended['Rating']}")
 ```
+
+
+    Top 10 cars by K500 Rating (as scraped):
+              Year           Make               Model       Category       0-60  \
+    375  1955-1955  Mercedes-Benz       300 SLR Coupé  Grand Tour...   6.9 secs   
+    127  1936-1938        Bugatti  Type 57SC Atlantic  Pre-War, S...  10.0 secs   
+    185  1962-1964        Ferrari             250 GTO  Sports-Rac...   4.7 secs   
+    369  1928-1932  Mercedes-Benz                 SSK  Grand Tour...  13.0 secs   
+    366  1994-1998        McLaren                  F1       Hypercar   3.2 secs   
+    175  1957-1961        Ferrari     250 Testa Rossa  Sports-Rac...   5.0 secs   
+    17   1937-1938     Alfa Romeo             8C 2900  Grand Tour...  10.0 secs   
+    121  1929-1933        Bugatti      Type 41 Royale  Grand Tour...  18.0 secs   
+    438  1969-1971        Porsche                917K  Film Star,...   3.5 secs   
+    14   1931-1934     Alfa Romeo             8C 2300  Grand Tour...  10.0 secs   
+
+         Top Speed  Rating  
+    375  176.47mph   100.0  
+    127     125mph    99.0  
+    185     174mph    97.0  
+    369     125mph    95.0  
+    366  242.95mph    95.0  
+    175     167mph    95.0  
+    17      130mph    92.0  
+    121     125mph    90.0  
+    438     240mph    88.0  
+    14      115mph    88.0  
+
+    *** Recommendation based on scraped data ***
+    Current market indices: K500 = 100.0, K50 = 100.0
+    Based on the K500 Guide ratings alone, a very strong candidate for a 'first classic car to buy' is:
+
+      Year range : 1955-1955
+      Make       : Mercedes-Benz
+      Model      : 300 SLR Coupé
+      Category   : Grand Tour...
+      0-60 mph   : 6.9 secs
+      Top speed  : 176.47mph
+      Rating     : 100.0
